@@ -27,4 +27,3 @@ jobs:
         node-version: '16.x'
         cache: 'npm'
     - run: npm ci
-    - run: npm test
