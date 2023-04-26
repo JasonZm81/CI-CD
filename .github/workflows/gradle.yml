@@ -19,7 +19,10 @@ permissions:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{matix.os}}
+    strategy: 
+      matrix:
+        os: [ubuntu-latest, window-latest, macOS-latest]
 
     steps:
     - uses: actions/checkout@v3
@@ -32,3 +35,7 @@ jobs:
       uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
       with:
         gradle-version: 8.1.1
+        
+  publish:
+      
+      needs: build
