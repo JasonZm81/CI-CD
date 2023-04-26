@@ -15,10 +15,8 @@ on:
 
 jobs:
   build:
-    runs-on: ${{matrix.os}}
-    strategy: 
-      matrix:
-        os: [ubuntu-latest, window-latest, macOS-latest]
+    runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v3
     - name: Set up JDK 11
@@ -30,3 +28,11 @@ jobs:
       uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
       with:
         gradle-version: 8.1.1
+        
+    - name: Build and Push Docker Images
+      uses: mr-smithers-excellent/docker-build-push@v6
+      with:
+          image: nanajanashia/demo-app
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
