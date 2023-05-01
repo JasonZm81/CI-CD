@@ -36,13 +36,13 @@ jobs:
 
 
     - name: Build and Pushing Department-service
-      run: mvn package dockerfile:push --file github_action/user-service/pom.xml
+      run: mvn package dockerfile:push --file github_action/department-service/pom.xml
       env:
         MAVEN_USERNAME: ${{secrets.DOCKER_USERNAME}}
         MAVEN_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
 
     - name: Build and Pushing User-service
-      run: mvn package dockerfile:push --file github_action/department-service/pom.xml
+      run: mvn package dockerfile:push --file github_action/user-service/pom.xml
       env:
         MAVEN_USERNAME: ${{secrets.DOCKER_USERNAME}}
         MAVEN_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
@@ -72,7 +72,7 @@ jobs:
         MAVEN_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
 
   Deploy:
-    needs: build
+    need: build
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
@@ -84,4 +84,4 @@ jobs:
         CLUSTER_NAME: ${{ env.GKE_CLUSTER }}
         ZONE_NAME: ${{ env.GKE_ZONE }}
       with:
-        args: apply -f github_action/k8s/
+        args: apply -f k8s/
