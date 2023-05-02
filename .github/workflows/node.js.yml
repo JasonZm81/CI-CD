@@ -8,6 +8,7 @@ on:
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  PROJECT_PSSD: ${{ secrets.GKE_SA_KEY }}
   GKE_CLUSTER: autopilot-cluster-1
   GKE_ZONE: us-central1
 
@@ -47,7 +48,7 @@ jobs:
       uses: ameydev/gke-kubectl-action@master    
       env:
         PROJECT_ID: ${{ env.PROJECT_ID }}
-        APPLICATION_CREDENTIALS: /tmp/account.json
+        APPLICATION_CREDENTIALS: ${{ env.PROJECT_PSSD }}
         CLUSTER_NAME: ${{ env.GKE_CLUSTER }}
         ZONE_NAME: ${{ env.GKE_ZONE }}
       with:
