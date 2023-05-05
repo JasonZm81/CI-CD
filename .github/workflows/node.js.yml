@@ -27,6 +27,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         
   setup-build-publish-deploy:
+    needs: sonarcloud
     name: Setup, Build, Publish, and Deploy
     runs-on: ubuntu-latest
     environment: production
