@@ -1,0 +1,115 @@
+name: GitHub Actions for Dakshin Deployment
+
+on:
+  push:
+    branches:
+      - pipeline-upgrade
+      - dev
+      - sit
+      - uat
+
+    paths:
+      - 'dakshin/**'
+      - 'lib/**'
+      - 'deployment/**'
+
+env:
+    ENVIRONMENT: ${{ github.ref }}
+
+jobs:
+  Short-Sha:
+    runs-on: [self-hosted]
+    outputs:
+      SHORT_SHA: ${{ steps.set_short_sha.outputs.short_sha }}
+    steps:
+      - name: Get Short Sha
+        id: set_short_sha
+        run: |
+          echo "::set-output name=short_sha::`echo ${{ github.sha }} | cut -c1-8`" 
+
+ 
+  Build-Push-Docker-Image:
+    runs-on: [self-hosted]
+    needs: [Short-Sha]
+    # environment:
+    #   name: ${{ needs.Determine-Environment.outputs.ENVIRONMENT }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+     
+
+  # Use dockerfile builder-args to populate env var:
+      - name: Build image
+        env:
+          IMAGE_TAG: ${{ needs.Short-Sha.outputs.SHORT_SHA }}
+          #APPLICATION: ${{ needs.Determine-Environment.outputs.APPLICATION }}
+        run: |
+          docker build -t ${{ vars.IMAGE_REPO }}/test/dakshin:$IMAGE_TAG -f deployment/Dockerfile-dakshin .
+
+
+ 
+      # Login ACR
+      - name: Login to ACR
+        uses: aliyun/acr-login@v1
+        with:
+          login-server: ${{ vars.ACR_SERVER }} 
+          username: ${{ secrets.REGISTRY_USERNAME }} 
+          password: ${{ secrets.REGISTRY_PASSWORD }} 
+          # login-server: "${{ vars.ACR_SERVER }}"    
+          region-id: "${{ vars.ACR_REGION }}"
+          #access-key-id:  ""
+          # access-key-secret: "${{ secrets.ACCESSKEY_SECRET }}"
+          instance-id: "${{ vars.INSTANCE_ID }}"
+
+      - name: Push image
+        env:
+          IMAGE_TAG: ${{ needs.Short-Sha.outputs.SHORT_SHA }}
+          #APPLICATION: ${{ needs.Determine-Environment.outputs.APPLICATION }}   
+        run: |
+          docker push ${{ vars.IMAGE_REPO }}/test/dakshin:$IMAGE_TAG 
+
+
+  AKS-Deployment:
+    runs-on: [self-hosted]
+    needs: [Short-Sha, Build-Push-Docker-Image]
+    environment:
+       name: ${{ needs.Determine-Environment.outputs.environment }}
+    steps:
+      # - name: Set up kubeconfig
+      #   run: |
+      #     echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
+      #     export KUBECONFIG=kubeconfig.yaml 
+      - name: Update Image in Deployment
+        uses: mikefarah/yq@master
+        env:
+          IMAGE_TAG: ${{ needs.Short-Sha.outputs.SHORT_SHA }}
+          #ENVIRONMENT: ${{ github.ref_name }}
+         # ENVIRONMENT: ${{ needs.Determine-Environment.outputs.ENVIRONMENT }}
+         # APPLICATION: ${{ needs.Determine-Environment.outputs.APPLICATION }} 
+        with: 
+          cmd: yq eval 'select(.kind == "Deployment") .spec.template.spec.containers[0].image = "${{ vars.IMAGE_REPO }}/test/dakshin:${{ env.IMAGE_TAG }}"' ./deployment/$ENVIRONMENT/deployment-dakshin-$ENVIRONMENT.yaml -i
+      
+      - name: Setup ACK
+        uses: aliyun/ack-set-context@v1
+        with:
+          access-key-id: ${{ secrets.ACCESSKEY_ID }}
+          access-key-secret: ${{ secrets.ACCESSKEY_SECRET }}
+          #cluster-id: ${{ vars.CLUSTER_ID }}
+          cluster-id: c565378aef832431fa6b8b35389622605
+
+      - name: Setup Kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Deploy to ACK
+        #env:
+          #ENVIRONMENT: ${{ github.ref_name }}
+         # ENVIRONMENT: ${{ needs.Determine-Environment.outputs.ENVIRONMENT }}
+        #  APPLICATION: ${{ needs.Determine-Environment.outputs.APPLICATION }}   
+        run: |
+          kubectl apply -f ./deployment/$ENVIRONMENT/deployment-dakshin-$ENVIRONMENT.yaml
+
+
+
+    # kubectl apply --kubeconfig=kubeconfig -n test-ingress-apisix -f ./deployment/$ENVIRONMENT/deployment-$APPLICATION-$ENVIRONMENT.yaml
+    # echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > kubeconfig
