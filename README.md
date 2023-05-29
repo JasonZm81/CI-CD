@@ -1,10 +1,9 @@
 ## _Steps to automate deployment using GitHub Actions pipeline:_
-#
-#
+
 #### 1.	Make sure database are all backup onto Magento.
-#
+
 #### 2.	Make sure to push/merge the new code changes into the specific branch.
-#
+
 #### 3.	Pull the latest code from the specific GitHub branch.
 ```sh
 git pull origin <branch> 
